@@ -133,6 +133,30 @@ uint32_t sun8i_efuse_read(uint32_t offset)
 	reg_val = readl(SUNXI_SIDC_BASE + SIDC_RDKEY);
 	return reg_val;
 }
+
+uint32_t sun8i_efuse_write(u32 offset, u32 val)
+{
+	u32 reg_val;
+
+	writel(val, SUNXI_SIDC_BASE + SIDC_RDKEY);
+
+	reg_val = readl(SUNXI_SIDC_BASE + SIDC_PRCTL);
+	reg_val &= ~(((0x1ff) << 16) | 0x3);
+	reg_val |= (offset << 16);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	reg_val &= ~(((0xff) << 8) | 0x3);
+	reg_val |= (SIDC_OP_LOCK << 8) | 0x1;
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	while (readl(SUNXI_SIDC_BASE + SIDC_PRCTL) & 0x1)
+		;
+
+	reg_val &= ~(((0x1ff) << 16) | ((0xff) << 8) | 0x3);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	return 0;
+}
 #endif
 
 int sunxi_get_sid(unsigned int *sid)
@@ -163,4 +187,40 @@ int sunxi_get_sid(unsigned int *sid)
 #else
 	return -ENODEV;
 #endif
+}
+
+int fuse_read(u32 bank, u32 word, u32 *sid)
+{
+#ifdef CONFIG_MACH_SUN8I_H3
+	*sid = sun8i_efuse_read(word);
+#elif defined SUNXI_SID_BASE
+	*sid = readl((ulong)SUNXI_SID_BASE + word);
+#else
+	return -ENODEV;
+#endif
+	return 0;
+}
+
+int fuse_prog(u32 bank, u32 word, u32 val)
+{
+#ifdef CONFIG_MACH_SUN8I_H3
+	return sun8i_efuse_write(word, val);
+#elif defined SUNXI_SID_BASE
+	writel(val, (ulong)SUNXI_SID_BASE + word);
+#else
+	return -ENODEV;
+#endif
+	return 0;
+}
+
+int fuse_sense(u32 bank, u32 word, u32 *val)
+{
+	/* We do not support sensing :-( */
+	return -EINVAL;
+}
+
+int fuse_override(u32 bank, u32 word, u32 val)
+{
+	/* We do not support overriding :-( */
+	return -EINVAL;
 }
