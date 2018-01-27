@@ -9,6 +9,7 @@ CONFIG_DEFAULT_DEVICE_TREE="sun8i-h2-plus-bananapi-m2-zero"
 # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
 CONFIG_SPL=y
 # CONFIG_CMD_FLASH is not set
+CONFIG_CMD_FUSE=y
 # CONFIG_CMD_FPGA is not set
 # CONFIG_SPL_DOS_PARTITION is not set
 # CONFIG_SPL_ISO_PARTITION is not set
