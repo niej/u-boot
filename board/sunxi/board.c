@@ -515,6 +515,60 @@ int board_mmc_init(bd_t *bis)
 #endif
 
 #ifdef CONFIG_SPL_BUILD
+#if defined(MACH_SUNXI_H3_H5) || defined(CONFIG_MACH_SUN50I)
+
+#define SIDC_PRCTL 0x40
+#define SIDC_RDKEY 0x60
+
+#define SIDC_OP_LOCK 0xAC
+
+uint32_t sun50i_efuse_read(uint32_t offset)
+{
+	uint32_t reg_val;
+
+	reg_val = readl(SUNXI_SIDC_BASE + SIDC_PRCTL);
+	reg_val &= ~(((0x1ff) << 16) | 0x3);
+	reg_val |= (offset << 16);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	reg_val &= ~(((0xff) << 8) | 0x3);
+	reg_val |= (SIDC_OP_LOCK << 8) | 0x2;
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	while (readl(SUNXI_SIDC_BASE + SIDC_PRCTL) & 0x2);
+
+	reg_val &= ~(((0x1ff) << 16) | ((0xff) << 8) | 0x3);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	reg_val = readl(SUNXI_SIDC_BASE + SIDC_RDKEY);
+	return reg_val;
+}
+
+uint32_t sun50i_efuse_write(u32 offset, u32 val)
+{
+	u32 reg_val;
+
+	writel(val, SUNXI_SIDC_BASE + SIDC_RDKEY);
+
+	reg_val = readl(SUNXI_SIDC_BASE + SIDC_PRCTL);
+	reg_val &= ~(((0x1ff) << 16) | 0x3);
+	reg_val |= (offset << 16);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	reg_val &= ~(((0xff) << 8) | 0x3);
+	reg_val |= (SIDC_OP_LOCK << 8) | 0x1;
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	while (readl(SUNXI_SIDC_BASE + SIDC_PRCTL) & 0x1)
+		;
+
+	reg_val &= ~(((0x1ff) << 16) | ((0xff) << 8) | 0x3);
+	writel(reg_val, SUNXI_SIDC_BASE + SIDC_PRCTL);
+
+	return 0;
+}
+#endif
+
 void sunxi_board_init(void)
 {
 	int power_failed = 0;
@@ -577,6 +631,16 @@ void sunxi_board_init(void)
 	power_failed |= axp_set_sw(IS_ENABLED(CONFIG_AXP_SW_ON));
 #endif
 #endif
+
+printf("read efuse off 0: 0x%x 4: 0x%x\n", sun50i_efuse_read(0), sun50i_efuse_read(4));
+printf("efuse write thermal 0x34: 0x4f\n");
+sun50i_efuse_write(0x34, 0x4f);
+printf("read efuse off 0x34: 0x%x\n", sun50i_efuse_read(0x34));
+
+printf("efuse write lcjs 0xf4: 0x%x\n", BIT(31 - 11));
+sun50i_efuse_write(0xf4, BIT(31 - 11));
+printf("read efuse off 0xf4: 0x%x\n", sun50i_efuse_read(0xf4));
+
 	printf("DRAM:");
 	gd->ram_size = sunxi_dram_init();
 	printf(" %d MiB\n", (int)(gd->ram_size >> 20));
