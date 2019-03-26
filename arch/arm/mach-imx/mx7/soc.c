@@ -286,6 +286,11 @@ int arch_cpu_init(void)
 
 	return 0;
 }
+#else
+int arch_cpu_init(void)
+{
+	return 0;
+}
 #endif
 
 #ifdef CONFIG_ARCH_MISC_INIT
