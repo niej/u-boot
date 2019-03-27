@@ -175,6 +175,11 @@ enum clk_root_index {
 	CLK_ROOT_MAX,
 };
 
+/* Use UART1_CLK_ROOT as default root clk if platform does define it */
+#ifndef UART_CLK_ROOT
+#define UART_CLK_ROOT UART1_CLK_ROOT
+#endif
+
 struct clk_root_setting {
 	enum clk_root_index root;
 	u32 setting;
